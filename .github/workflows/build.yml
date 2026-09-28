@@ -4,12 +4,15 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: unzip -q rusc-android.zip
+      - run: unzip -q -o rusc-android.zip
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -20,7 +23,16 @@ jobs:
       - name: Compilar
         working-directory: rusc-android
         run: gradle assembleRelease --no-daemon
+      - name: Preparar APK
+        run: cp rusc-android/app/build/outputs/apk/release/*.apk Rusc.apk
       - uses: actions/upload-artifact@v4
         with:
           name: rusc-apk
-          path: rusc-android/app/build/outputs/apk/release/*.apk
+          path: Rusc.apk
+          if-no-files-found: error
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Rusc ${{ github.run_number }}
+          files: Rusc.apk
